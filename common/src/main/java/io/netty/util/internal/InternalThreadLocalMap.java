@@ -323,6 +323,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
             lookup[index] = value;
             return oldValue == UNSET;
         } else {
+            // 超过数组长度，需要进行扩容
             expandIndexedVariableTableAndSet(index, value);
             return true;
         }

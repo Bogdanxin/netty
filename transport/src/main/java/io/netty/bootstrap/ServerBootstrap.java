@@ -212,6 +212,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             setAttributes(child, childAttrs);
 
             try {
+                // 将子 channel 加入到 workGroup
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
