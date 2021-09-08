@@ -30,7 +30,9 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Raises a {@link WriteTimeoutException} when a write operation cannot finish in a certain period of time.
+ * ReadTimeOutHandler 类 readIdle 时触发，WriteTimeOutHandler 用于判断写是否完成，
+ * 一定时间内没有完成一个写操作时候，出发异常
+ * <p>Raises a {@link WriteTimeoutException} when a write operation cannot finish in a certain period of time.
  *
  * <pre>
  * // The connection is closed when a write operation cannot finish in 30 seconds.
@@ -204,6 +206,7 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
             // Was not written yet so issue a write timeout
             // The promise itself will be failed with a ClosedChannelException once the close() was issued
             // See https://github.com/netty/netty/issues/2159
+            // 这里判断的不是是否 timeout 而是是否完成，如果没有完成就抛出异常
             if (!promise.isDone()) {
                 try {
                     writeTimedOut(ctx);

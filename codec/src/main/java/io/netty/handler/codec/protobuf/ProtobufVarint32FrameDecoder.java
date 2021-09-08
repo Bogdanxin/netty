@@ -40,6 +40,7 @@ import java.util.List;
  * @see CodedInputStream
  * @see CodedInputByteBufferNano
  */
+// Varint 长度字段的可变化
 public class ProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
 
     // TODO maxFrameLength + safe skip + fail-fast option

@@ -84,7 +84,7 @@ public class ChannelInboundHandlerAdapter extends ChannelHandlerAdapter implemen
     /**
      * Calls {@link ChannelHandlerContext#fireChannelRead(Object)} to forward
      * to the next {@link ChannelInboundHandler} in the {@link ChannelPipeline}.
-     *
+     * 用来解决 tcp 的粘包和半包问题
      * Sub-classes may override this method to change behavior.
      */
     @Skip
