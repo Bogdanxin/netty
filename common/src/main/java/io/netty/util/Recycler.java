@@ -241,7 +241,7 @@ public abstract class Recycler<T> {
             if (lastRecycledId != recycleId || stack == null) {
                 throw new IllegalStateException("recycled already");
             }
-
+            // 释放使用完的对象
             stack.push(this);
         }
 
@@ -252,7 +252,8 @@ public abstract class Recycler<T> {
         }
     }
 
-    private static final FastThreadLocal<Map<Stack<?>, WeakOrderQueue>> DELAYED_RECYCLED =
+    private static final FastThreadLocal<Map<Stack<?>, WeakOrderQueue>>
+            DELAYED_RECYCLED =
             new FastThreadLocal<Map<Stack<?>, WeakOrderQueue>>() {
         @Override
         protected Map<Stack<?>, WeakOrderQueue> initialValue() {
