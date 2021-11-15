@@ -862,7 +862,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
-    private void destroyDown(Thread currentThread, AbstractChannelHandlerContext ctx, boolean inEventLoop) {
+    private void
+    destroyDown(Thread currentThread, AbstractChannelHandlerContext ctx, boolean inEventLoop) {
         // We have reached at tail; now traverse backwards.
         final AbstractChannelHandlerContext head = this.head;
         for (;;) {
@@ -1396,7 +1397,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
             ctx.fireChannelActive();
-
+            // 注册读事件：读包括：创建连接/读数据
             readIfIsAutoRead();
         }
 
