@@ -1,9 +1,8 @@
-package io.netty.example.mytest;
+package io.netty.example.mytest.itcast.c1;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.local.LocalAddress;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.string.StringEncoder;
@@ -30,7 +29,7 @@ public class ClientTest {
 				.sync()
 				.channel()
 				.writeAndFlush("123");*/
-		new Bootstrap()
+		Channel channel = new Bootstrap()
 				// 2. 添加 EventLoop
 				.group(new NioEventLoopGroup())
 				// 3. 选择客户端 channel 实现
@@ -45,8 +44,12 @@ public class ClientTest {
 				// 5. 连接到服务器
 				.connect(new InetSocketAddress("localhost", 8000))
 				.sync()
-				.channel()
-				// 6. 向服务器发送数据
-				.writeAndFlush("hello, world");
+				.channel();
+		System.out.println("====");
+		// 6. 向服务器发送数据
+				channel.writeAndFlush("hello, world");
+
+		System.out.println("-----");
+		System.out.println();
 	}
 }
