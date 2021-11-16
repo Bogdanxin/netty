@@ -1,4 +1,4 @@
-package io.netty.example.mytest;
+package io.netty.example.mytest.itcast.c1;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -25,24 +25,25 @@ public class ServerTest {
 				.childHandler(new ChannelInitializer<NioSocketChannel>() {
 					@Override
 					protected void initChannel(NioSocketChannel ch) throws Exception {
-						ch.pipeline().addLast("handler1", new ChannelInboundHandlerAdapter() {
-							@Override
-							public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-								String result = ((ByteBuf) msg).toString(Charset.defaultCharset());
-								log.debug(result);
-								ctx.fireChannelRead(msg);
-							}
-						}).addLast(group, "handler2", new ChannelInboundHandlerAdapter() {
-							@Override
-							public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-								String result = ((ByteBuf) msg).toString(Charset.defaultCharset());
-								log.debug(result);
-							}
-						});
+						ch.pipeline()
+								.addLast("handler1", new ChannelInboundHandlerAdapter() {
+									@Override
+									public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+										String result = ((ByteBuf) msg).toString(Charset.defaultCharset());
+										log.debug(result);
+										ctx.fireChannelRead(msg);
+									}})
+								.addLast(group, "handler2", new ChannelInboundHandlerAdapter() {
+									@Override
+									public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+										String result = ((ByteBuf) msg).toString(Charset.defaultCharset());
+										log.debug(result);
+									}});
 					}
 				})
 				.bind(8000);
 
+		log.debug("===test===");
 
 	}
 }
