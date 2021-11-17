@@ -1243,6 +1243,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     // A special catch-all handler that handles both bytes and messages.
+    // TailContext 作为 inbound 的最后一站，outbound 的第一站，首先会释放 inbound 事件传播，并且将 outbound 事件向下传递
     final class TailContext extends AbstractChannelHandlerContext implements ChannelInboundHandler {
 
         TailContext(DefaultChannelPipeline pipeline) {
@@ -1303,6 +1304,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    // HeadContext 既是 inbound 处理器，又是 outbound 处理器。网络数据写入的起始点就是从 HeadContext 为入口
+    // HeadContext 作为头结点负责读取数据并开始传递 inbound 时间，当事件处理完毕，数据会反方向经过 outbound 处理器，
+    // 所以 HeadContext 又是 outbound 事件的最后一站
     final class HeadContext extends AbstractChannelHandlerContext
             implements ChannelOutboundHandler, ChannelInboundHandler {
 

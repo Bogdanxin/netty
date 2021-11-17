@@ -42,7 +42,7 @@ public class ClientTest {
 					}
 				})
 				// 5. 连接到服务器
-				.connect(new InetSocketAddress("localhost", 8000))
+				.connect(new InetSocketAddress("localhost", 8080))
 				.sync()
 				.channel();
 		System.out.println("====");
