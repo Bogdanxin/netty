@@ -16,19 +16,7 @@ import java.net.InetSocketAddress;
 public class ClientTest {
 
 	public static void main(String[] args) throws InterruptedException {
-		/*new Bootstrap()
-				.group(new NioEventLoopGroup())
-				.channel(NioSocketChannel.class)
-				.handler(new ChannelInitializer<NioSocketChannel>() {
-					@Override
-					protected void initChannel(NioSocketChannel ch) throws Exception {
-						ch.pipeline().addLast(new StringEncoder());
-					}
-				})
-				.connect(new InetSocketAddress("localhost", 8080))
-				.sync()
-				.channel()
-				.writeAndFlush("123");*/
+
 		Channel channel = new Bootstrap()
 				// 2. 添加 EventLoop
 				.group(new NioEventLoopGroup())
