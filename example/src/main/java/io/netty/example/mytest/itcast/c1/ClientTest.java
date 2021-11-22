@@ -32,7 +32,7 @@ public class ClientTest {
 		Channel channel = new Bootstrap()
 				// 2. 添加 EventLoop
 				.group(new NioEventLoopGroup())
-				// 3. 选择客户端 channel 实现
+				// 3. 选择客户端 channel 实现ChannelDuplexHandler
 				.channel(NioSocketChannel.class)
 				// 4. 添加处理器
 				.handler(new ChannelInitializer<NioSocketChannel>() {

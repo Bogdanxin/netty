@@ -785,7 +785,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
                 (MASK_WRITE | MASK_FLUSH) : MASK_WRITE);
         final Object m = pipeline.touch(msg, next);
         EventExecutor executor = next.executor();
-        if (executor.inEventLoop()) {
+        if (executor.inEventLoop()) { // 通过判断线程和 channel 的线程是否匹配，保证线程安全
             if (flush) {
                 next.invokeWriteAndFlush(m, promise);
             } else {
