@@ -1,7 +1,6 @@
-package io.netty.example.mytest.itcast.c1;
+package io.netty.example.mytest.lagou.c3;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -11,33 +10,23 @@ import java.net.InetSocketAddress;
 
 /**
  * @author weixingong.gwx
- * @date 2021/11/16
+ * @date 2021/11/17
  */
-public class ClientTest {
+public class ChannelPipelineClient {
 
 	public static void main(String[] args) throws InterruptedException {
-
-		Channel channel = new Bootstrap()
-				// 2. 添加 EventLoop
+		new Bootstrap()
 				.group(new NioEventLoopGroup())
-				// 3. 选择客户端 channel 实现ChannelDuplexHandler
 				.channel(NioSocketChannel.class)
-				// 4. 添加处理器
 				.handler(new ChannelInitializer<NioSocketChannel>() {
-					@Override // 在连接建立后被调用
+					@Override
 					protected void initChannel(NioSocketChannel ch) throws Exception {
 						ch.pipeline().addLast(new StringEncoder());
 					}
 				})
-				// 5. 连接到服务器
-				.connect(new InetSocketAddress("localhost", 8080))
+				.connect(new InetSocketAddress("localhost",8080))
 				.sync()
-				.channel();
-		System.out.println("====");
-		// 6. 向服务器发送数据
-				channel.writeAndFlush("hello, world");
-
-		System.out.println("-----");
-		System.out.println();
+				.channel()
+				.writeAndFlush("123");
 	}
 }

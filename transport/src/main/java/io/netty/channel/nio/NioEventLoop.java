@@ -454,6 +454,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         nextWakeupNanos.set(curDeadlineNanos);
                         try {
                             if (!hasTasks()) {
+                                // 执行 selector 轮询 IO 事件
                                 strategy = select(curDeadlineNanos);
                             }
                         } finally {
@@ -481,10 +482,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 if (ioRatio == 100) {
                     try {
                         if (strategy > 0) {
+                            // 处理 IO 事件
                             processSelectedKeys();
                         }
                     } finally {
                         // Ensure we always run tasks.
+                        // 处理所有的任务
                         ranTasks = runAllTasks();
                     }
                 } else if (strategy > 0) {
