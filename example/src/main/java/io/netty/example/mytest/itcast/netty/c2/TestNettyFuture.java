@@ -1,10 +1,8 @@
-package io.netty.example.mytest.itcast.c2;
+package io.netty.example.mytest.itcast.netty.c2;
 
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.EventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.Callable;

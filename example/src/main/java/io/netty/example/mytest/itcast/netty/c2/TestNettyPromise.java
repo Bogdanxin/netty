@@ -1,4 +1,4 @@
-package io.netty.example.mytest.itcast.c2;
+package io.netty.example.mytest.itcast.netty.c2;
 
 import io.netty.channel.EventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;

@@ -1,16 +1,11 @@
-package io.netty.example.mytest.itcast.c3;
+package io.netty.example.mytest.itcast.netty.c3;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-
-import java.nio.charset.Charset;
 
 /**
  * @author weixingong.gwx

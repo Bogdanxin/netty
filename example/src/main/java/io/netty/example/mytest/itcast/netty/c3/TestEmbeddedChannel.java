@@ -1,6 +1,5 @@
-package io.netty.example.mytest.itcast.c3;
+package io.netty.example.mytest.itcast.netty.c3;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;

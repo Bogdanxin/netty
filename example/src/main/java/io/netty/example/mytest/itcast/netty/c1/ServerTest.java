@@ -1,7 +1,6 @@
-package io.netty.example.mytest.itcast.c1;
+package io.netty.example.mytest.itcast.netty.c1;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -9,8 +8,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.example.mytest.lagou.c3.handler.SampleInBoundHandler;
 import io.netty.example.mytest.lagou.c3.handler.SampleOutBoundHandler;
 import lombok.extern.slf4j.Slf4j;
-
-import java.nio.charset.Charset;
 
 /**
  * @author weixingong.gwx

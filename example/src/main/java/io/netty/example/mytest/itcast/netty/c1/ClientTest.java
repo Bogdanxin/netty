@@ -1,4 +1,4 @@
-package io.netty.example.mytest.itcast.c1;
+package io.netty.example.mytest.itcast.netty.c1;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
