@@ -37,6 +37,7 @@ public interface EventExecutor extends EventExecutorGroup {
 
     /**
      * Calls {@link #inEventLoop(Thread)} with {@link Thread#currentThread()} as argument
+     * 判断当前线程和 EventLoop 中的线程是否是同一个
      */
     boolean inEventLoop();
 

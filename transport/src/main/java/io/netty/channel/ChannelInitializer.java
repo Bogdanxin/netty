@@ -109,8 +109,9 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
             // The good thing about calling initChannel(...) in handlerAdded(...) is that there will be no ordering
             // surprises if a ChannelInitializer will add another ChannelInitializer. This is as all handlers
             // will be added in the expected order.
+            // initChannel 方法就是执行回调方法的最终方法
             if (initChannel(ctx)) {
-
+                // 在 initChannel 中移除了 handler，在这里移除 handler 对应的 context
                 // We are done with init the Channel, removing the initializer now.
                 removeState(ctx);
             }
@@ -126,12 +127,16 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
     private boolean initChannel(ChannelHandlerContext ctx) throws Exception {
         if (initMap.add(ctx)) { // Guard against re-entrance.
             try {
+                // 调用 ChannelInitializer 中的 initChannel 方法，也就 addLast 中的 ChannelInitializer 中重写的方法
                 initChannel((C) ctx.channel());
             } catch (Throwable cause) {
                 // Explicitly call exceptionCaught(...) as we removed the handler before calling initChannel(...).
                 // We do so to prevent multiple calls to initChannel(...).
                 exceptionCaught(ctx, cause);
             } finally {
+                // ChannelInitializer 一次性调用的实现就在这里
+                // 将 ServerBootstrap.init 方法添加的匿名内部类 ChannelInitializer 从 Pipeline 中删除
+                // 此时 pipeline 为: HeadContext -> handler(自定义 handler) -> TailContext
                 ChannelPipeline pipeline = ctx.pipeline();
                 if (pipeline.context(this) != null) {
                     pipeline.remove(this);

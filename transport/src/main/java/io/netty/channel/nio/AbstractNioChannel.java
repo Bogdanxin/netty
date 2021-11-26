@@ -79,7 +79,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
         super(parent);
         this.ch = ch;
+        // 设置感兴趣的事件
         this.readInterestOp = readInterestOp;
+        // 设置为非阻塞模式
         try {
             ch.configureBlocking(false);
         } catch (IOException e) {
@@ -377,7 +379,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (;;) {
             try {
-                selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);// 调用 jdk 的 register，将 channel register 到 selector 上
+                // 调用 jdk 的 register，将 channel register 到 selector 上，把 netty 中的 channel 作为 nio Channel 的 att，保证以后用 netty Channel
+                selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
                 if (!selected) {
@@ -411,6 +414,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         // 假设之前没有监听 ops，则监听 readInterestOps
         final int interestOps = selectionKey.interestOps();
         if ((interestOps & readInterestOp) == 0) {
+            // 设置感兴趣事件为 OP_ACCEPT，这样就可以通过 selector 注册事件了
             selectionKey.interestOps(interestOps | readInterestOp);
         }
     }

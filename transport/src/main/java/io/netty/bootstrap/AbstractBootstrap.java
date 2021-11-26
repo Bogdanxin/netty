@@ -55,10 +55,12 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     private static final Map.Entry<ChannelOption<?>, Object>[] EMPTY_OPTION_ARRAY = new Map.Entry[0];
     @SuppressWarnings("unchecked")
     private static final Map.Entry<AttributeKey<?>, Object>[] EMPTY_ATTRIBUTE_ARRAY = new Map.Entry[0];
-
+    // group()
     volatile EventLoopGroup group;
+    // channel()
     @SuppressWarnings("deprecation")
     private volatile ChannelFactory<? extends C> channelFactory;
+    // port 和 ip
     private volatile SocketAddress localAddress;
 
     // The order in which ChannelOptions are applied is important they may depend on each other for validation
@@ -270,23 +272,30 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        // 返回的是 ChannelFuture，说明这个操作是异步初始化的
+        // 这个方法集合了创建 channel、初始化 channel、注册 channel 参数
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
+        // 判断 future 的 cause，从而确认是否发生异常，如果有异常直接返回
         if (regFuture.cause() != null) {
             return regFuture;
         }
-
+        // 判断 initAndRegister 是否已经完成
         if (regFuture.isDone()) {
+            // 如果已经完成，调用 doBind0 进行 socket 绑定
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
+            // 没有完成（done）
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
+            // 注册监听器，在 future 完成后回调 operationComplete方法
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
+                    // 还是要判断是否出现异常，如果有异常就设置 failure，如果没有，就设置 registered，并进行 doBind0
                     Throwable cause = future.cause();
                     if (cause != null) {
                         // Registration on the EventLoop failed so fail the ChannelPromise directly to not cause an
@@ -307,8 +316,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     final ChannelFuture initAndRegister() {
         Channel channel = null;
-        try {// init 操作
+        try {
+            // 通过反射创建 channel。同时初始化一些属性，比如 channel 的 pipeline、unsafe、感兴趣事件 interestOps 等等（构造方法继承太多层，也能看出来继承关系）
             channel = channelFactory.newChannel();
+            // 创建完成 channel 后，对 channel 进行初始化，首先对参数进行配置，然后添加 handler。在添加过程中，会对 handler 以及 handlerContext 进行封装
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
@@ -320,7 +331,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             // as the Channel is not registered yet we need to force the usage of the GlobalEventExecutor
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
-        // 进行 register 操作
+        // 进行 register 操作，将 channel 注册到 boss group 的 EventLoop 的 selector 上，
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
@@ -383,6 +394,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Returns the {@link AbstractBootstrapConfig} object that can be used to obtain the current config
      * of the bootstrap.
+     * config() 返回 ServerBootstrapConfig 对象，保存了对 ServerBootstrap 的配置：Boss、worker、option、handler、 childHandler 等等
      */
     public abstract AbstractBootstrapConfig<B, C> config();
 
