@@ -828,9 +828,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     private void execute(Runnable task, boolean immediate) {
+        // 如果返回值为 false，有一种可能是 EventLoop 没有绑定一个 thread
         boolean inEventLoop = inEventLoop();
+        // 向 EventLoop 中添加 task
         addTask(task);
-        if (!inEventLoop) {//判断是否启动
+        // 再次判断 EventLoop 线程和当前线程是否相同，只有没有绑定 thread 时候才会 start，不然就 wakeup EventLoop
+        if (!inEventLoop) {
+            // 启动线程，同时将线程和 EventLoop 绑定
             startThread();
             if (isShutdown()) {
                 boolean reject = false;
@@ -848,7 +852,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 }
             }
         }
-
+        // 是否立刻 wakeup 唤醒 task
         if (!addTaskWakesUp && immediate) {
             wakeup(inEventLoop);
         }
@@ -981,6 +985,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         assert thread == null;
         executor.execute(new Runnable() {
             @Override
+            // 这时候才会对 EventLoop 设置 thread
             public void run() {
                 thread = Thread.currentThread();
                 if (interrupted) {

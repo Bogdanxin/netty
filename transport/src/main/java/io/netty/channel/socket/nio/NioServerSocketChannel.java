@@ -56,7 +56,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
             /**
              *  Use the {@link SelectorProvider} to open {@link SocketChannel} and so remove condition in
              *  {@link SelectorProvider#provider()} which is called by each ServerSocketChannel.open() otherwise.
-             *
+             *  通过 jdk.nio 的 provider.openServerSocketChannel 方法创建 channel
              *  See <a href="https://github.com/netty/netty/issues/2308">#2308</a>.
              */
             return provider.openServerSocketChannel();

@@ -51,7 +51,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<ChannelOption<?>, Object>();
     private final Map<AttributeKey<?>, Object> childAttrs = new ConcurrentHashMap<AttributeKey<?>, Object>();
     private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
+    // group()
     private volatile EventLoopGroup childGroup;
+    // childHandler()
     private volatile ChannelHandler childHandler;
 
     public ServerBootstrap() { }
@@ -130,29 +132,42 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     @Override
     void init(Channel channel) {
+        // 设置服务端 channel 相关的 option、attrs 等配置
         setChannelOptions(channel, newOptionsArray(), logger);
+        // 保存用户自定义属性
         setAttributes(channel, newAttributesArray());
-
+        // 此时的 pipeline 结构为 HeadContext -> TailContext
         ChannelPipeline p = channel.pipeline();
-
+        /* 以下是：1. 设置 socket 参数和用户自定义属性，在创建 Channel 时候，配置参数保存在 NioServerSocketChannelConfig 中，初始化 channel 时，会将这些参数设置到 socket 中，将用户设置参数绑定到 channel 上 */
         final EventLoopGroup currentChildGroup = childGroup;
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions = newOptionsArray(childOptions);
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = newAttributesArray(childAttrs);
 
+        /*
+        以下是为 pipeline 添加 handler(ChannelInitializer)，
+        我们在初始化时，还没有将 Channel 注册到 Selector 对象上，所以还无法注册 Accept 事件到 Selector 上，
+        所以事先添加了 ChannelInitializer 处理器，等待 Channel 注册完成后，再向 Pipeline 中添加 ServerBootstrapAcceptor 处理器。
+        */
+        // 执行 addLast 完成后 pipeline 的结构为：HeadContext -> ChannelInitializer -> TailContext
+        // 这个添加的匿名内部类 handler 会在 ChannelInitializer#initChannel(ChannelHandlerContext ctx) 方法（和回调方法重载）中被调用。
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
+                // handler() 方法返回的是在 main 方法中 handler() 方法添加的 handler
+                // 如果返回值不为空，则添加到 pipeline 中：HeadContext -> ChannelInitializer -> handler(自定义 handler) -> TailContext
                 ChannelHandler handler = config.handler();
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
-
+                // 异步向 pipeline 中添加 ServerBootstrapAccepter
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
-                        pipeline.addLast(new ServerBootstrapAcceptor( // 负责对连接进行初始化的操作
+                        // 负责对连接进行初始化的操作，向 pipeline 添加这个 handler，ServerBootstrapAcceptor 的作用就是负责之后新连接的建立
+                        // pipeline： HeadContext -> handler(自定义) -> ServerBootstrapAcceptor -> TailContext
+                        pipeline.addLast(new ServerBootstrapAcceptor(
                                 ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs));
                     }
                 });

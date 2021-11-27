@@ -70,8 +70,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      */
     protected AbstractChannel(Channel parent) {
         this.parent = parent;
+        // channel 全局唯一 id
         id = newId();
+        // unsafe 操作底层读写
         unsafe = newUnsafe();
+        //pipeline 负责处理器连接
         pipeline = newChannelPipeline();
     }
 
@@ -473,10 +476,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         new IllegalStateException("incompatible event loop type: " + eventLoop.getClass().getName()));
                 return;
             }
-
+            // 首先设置当前 channel 的 EventLoop，服务端就是对 NioServerSocketChannel 的 EventLoop 设置
             AbstractChannel.this.eventLoop = eventLoop;
-
-            if (eventLoop.inEventLoop()) { // 判断当前线程是否为 eventLoop 线程
+            // 判断当前线程是否为 eventLoop 线程，判断需要异步执行还是同步执行
+            if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
                 try {
@@ -505,12 +508,15 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
+                // 调用 jdk 底层的 register() 进行注册，将当前的 channel 注册到 selector 多路复用器上
                 doRegister();
                 neverRegistered = false;
                 registered = true;
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
+                // 这个方法就是回调 pipeline 中 handler 的 handlerAdded 方法，
+                // 这些方法在 DefaultChannelPipeline#addLast 中已经封装为 PendingHandlerCallback 加入到链表中了
                 pipeline.invokeHandlerAddedIfNeeded();
                 // 成功 set
                 safeSetSuccess(promise);
@@ -559,13 +565,14 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             boolean wasActive = isActive();
             try {
+                // 调用 jdk 底层进行绑定
                 doBind(localAddress);
             } catch (Throwable t) {
                 safeSetFailure(promise, t);
                 closeIfClosed();
                 return;
             }
-            // 已经 bind 后，就要将其设为 active
+            // 已经 bind 后，就要将其设为 active，触发 channelActive 事件
             if (!wasActive && isActive()) {
                 invokeLater(new Runnable() {
                     @Override
