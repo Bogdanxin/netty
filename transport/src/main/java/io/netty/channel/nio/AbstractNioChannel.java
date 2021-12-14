@@ -414,7 +414,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         // 假设之前没有监听 ops，则监听 readInterestOps
         final int interestOps = selectionKey.interestOps();
         if ((interestOps & readInterestOp) == 0) {
-            // 设置感兴趣事件为 OP_ACCEPT，这样就可以通过 selector 注册事件了
+            // 设置感兴趣事件为 interestOps，这样就可以通过 selector 注册事件了
             selectionKey.interestOps(interestOps | readInterestOp);
         }
     }

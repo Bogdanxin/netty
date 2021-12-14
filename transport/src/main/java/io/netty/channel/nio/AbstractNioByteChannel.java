@@ -139,14 +139,17 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 return;
             }
             final ChannelPipeline pipeline = pipeline();
+            // ByteBuf 的分配器，负责池化还是非池化，直接内存还是非直接内存
             final ByteBufAllocator allocator = config.getAllocator();
+            // allocHandle 是 RecvByteBufAllocator 的内部类，接管 IO 事件的 ByteBuf 分配到直接内存
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
             allocHandle.reset(config);
 
             ByteBuf byteBuf = null;
             boolean close = false;
+            // 后面的代码其实就是在建立连接后，接收数据、分配数据的 ByteBuf、通过 handler 处理 ByteBuf 的流程
             try {
-                do {
+                do {// 通过 allocHandle#allocate 创建 ByteBuf，因为是IO 事件，所以是分配到直接内存
                     byteBuf = allocHandle.allocate(allocator);
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
                     if (allocHandle.lastBytesRead() <= 0) {
@@ -163,7 +166,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
                     allocHandle.incMessagesRead(1);
                     readPending = false;
-                    pipeline.fireChannelRead(byteBuf);
+                    pipeline.fireChannelRead(byteBuf); // 唤醒连接的 pipeline 上的 handler，这才是真的执行了添加到的 handler
                     byteBuf = null;
                 } while (allocHandle.continueReading());
 

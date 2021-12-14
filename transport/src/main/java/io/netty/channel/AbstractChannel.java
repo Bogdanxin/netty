@@ -478,11 +478,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
             // 首先设置当前 channel 的 EventLoop，服务端就是对 NioServerSocketChannel 的 EventLoop 设置
             AbstractChannel.this.eventLoop = eventLoop;
-            // 判断当前线程是否为 eventLoop 线程，判断需要异步执行还是同步执行
+            // 判断当前线程是否为 eventLoop 线程，判断需要异步执行还是同步执行，本质上，就是为了线程切换也就是把任务放到 NIO 线程中执行，所以才有了线程出现切换的情况
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
-                try {
+                try { // execute 方法会在第一次执行的时候启动线程，相当于一种懒加载的行为
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -518,12 +518,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 // 这个方法就是回调 pipeline 中 handler 的 handlerAdded 方法，
                 // 这些方法在 DefaultChannelPipeline#addLast 中已经封装为 PendingHandlerCallback 加入到链表中了
                 pipeline.invokeHandlerAddedIfNeeded();
-                // 成功 set
+                // 对 promise 设置 success，此 promise 就是 AbstractBootstrap.initAndRegister 返回的 regFuture 对象，也就是说，regFuture.addListener 中的 operationComplete 方法会在现在执行
                 safeSetSuccess(promise);
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
-                if (isActive()) {
+                if (isActive()) { // 这一步一般作用于 socketChannel，也就是建立连接后，关注 read 事件
                     if (firstRegistration) {
                         pipeline.fireChannelActive();
                     } else if (config().isAutoRead()) {
@@ -572,12 +572,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 closeIfClosed();
                 return;
             }
-            // 已经 bind 后，就要将其设为 active，触发 channelActive 事件
+            // 已经 bind 后，就要将其设为 active，触发 channelActive 事件（以前没建立连接，但是经过 doBind 后建立连接了）
             if (!wasActive && isActive()) {
                 invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        pipeline.fireChannelActive();
+                        pipeline.fireChannelActive(); // head -> acceptor -> tail 这个方法就是触发 pipeline 上的所有 handler 调用 channelActive 方法
                     }
                 });
             }

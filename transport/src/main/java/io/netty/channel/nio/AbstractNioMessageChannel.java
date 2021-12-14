@@ -75,7 +75,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             Throwable exception = null;
             try {
                 try {
-                    do {
+                    do {// 创建 SocketChannel 并设置为非阻塞
                         int localRead = doReadMessages(readBuf);
                         if (localRead == 0) {
                             break;
@@ -94,7 +94,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 int size = readBuf.size();
                 for (int i = 0; i < size; i ++) {
                     readPending = false;
-                    pipeline.fireChannelRead(readBuf.get(i));
+                    pipeline.fireChannelRead(readBuf.get(i)); // 在 ServerSocketChannel 上的 pipeline 调用 acceptor handler 处理 readBuf 上的消息
                 }
                 readBuf.clear();
                 allocHandle.readComplete();

@@ -852,7 +852,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 }
             }
         }
-        // 是否立刻 wakeup 唤醒 task
+        // 是否立刻 wakeup 唤醒 task，如果有新的任务添加到 EventLoop 中，并且需要理解唤醒
+        // 那么需要唤醒wakeUp()方法正在阻塞执行 select 的线程
         if (!addTaskWakesUp && immediate) {
             wakeup(inEventLoop);
         }
@@ -986,7 +987,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         executor.execute(new Runnable() {
             @Override
             // 这时候才会对 EventLoop 设置 thread
-            public void run() {
+            public void run() { // 这里 currentThread 是 executor 的 thread，是在 NioEventLoopGroup 创建 NioEventLoop 时候创建的，同时说明 thread 和 executor 的关联性
                 thread = Thread.currentThread();
                 if (interrupted) {
                     thread.interrupt();

@@ -110,6 +110,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     /**
      * The NIO {@link Selector}.
+     * 在构造方法中同时创建这两个 selector，
+     * - 第一个 selector 是在原 NIO selector 基础上将 Selector的selectedKey 属性
+     * （是 Selector 类中的属性不是下面的那个)由 set 通过反射改变为数组，提高遍历性能
+     * - 第二个 selector 就是原来的 selectedKey，用来保留原来 selector 的一些功能。
+     * - selectedKey 属性其实就是为了提高便利性能特地修改的，提供给 selector 同时也能够直接通过 NioEventLoop 访问
      */
     private Selector selector;
     private Selector unwrappedSelector;
@@ -438,7 +443,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             try {
                 int strategy;
                 try {
+                    // 判断是否进入到 SELECT 中，判断条件是任务队列中是否有任务，如果没有直接进入 select 阻塞，降低 cpu 空转
+                    // 如果有任务，先执行 selectNow 方法查看是否有事件，拿到IO事件，执行 Switch 后面的代码，在后面一起搞定 IO 事件。
                     strategy = selectStrategy.calculateStrategy(selectNowSupplier, hasTasks());
+                    // Switch 中，只有 SELECT 才会被执行 select 方法阻塞监听事件，除开其他的负数（CONTINUE、BUSY_WAIT），就会执行接下来的任务
                     switch (strategy) {
                     case SelectStrategy.CONTINUE:
                         continue;
@@ -477,6 +485,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 selectCnt++;
                 cancelledKeys = 0;
                 needsToSelectAgain = false;
+                // 控制处理 IO 事件所占的时间的比例，默认为 50%
                 final int ioRatio = this.ioRatio;
                 boolean ranTasks;
                 if (ioRatio == 100) {
@@ -509,7 +518,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                                 selectCnt - 1, selector);
                     }
                     selectCnt = 0;
-                } else if (unexpectedSelectorWakeup(selectCnt)) { // Unexpected wakeup (unusual case)
+                } else if (unexpectedSelectorWakeup(selectCnt)) { // Unexpected wakeup (unusual case) jdk 在 Linux 的 nio 的空轮询 bug：一直在空轮询，不会阻塞，解决方案就是重新创建一个新的 selector，替换旧的
                     selectCnt = 0;
                 }
             } catch (CancelledKeyException e) {
@@ -580,6 +589,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     private void processSelectedKeys() {
+        // 判断是否已经替换了 selectedKey
         if (selectedKeys != null) {
             processSelectedKeysOptimized();
         } else {
@@ -783,6 +793,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     @Override
     protected void wakeup(boolean inEventLoop) {
+        // inEventLoop 表示提交任务的线程不是 NIO 线程，才能够唤醒阻塞的 selector
+        // 多个线程同时提交任务时，同时调用 wakeup，实际上只需要一次 wakeup 即可唤醒，
+        // 通过 AWAKE 的 CAS 修改，只需要一次 cas 修改就可改变
         if (!inEventLoop && nextWakeupNanos.getAndSet(AWAKE) != AWAKE) {
             selector.wakeup();
         }

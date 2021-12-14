@@ -161,7 +161,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
-                // 异步向 pipeline 中添加 ServerBootstrapAccepter
+                // 异步向 pipeline 中添加 ServerBootstrapAccepter，所以执行线程也是 NIO对应的线程
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
@@ -227,7 +227,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             setChannelOptions(child, childOptions, logger);
             setAttributes(child, childAttrs);
 
-            try {
+            try {// EventLoopGroup register 注册一个 channel，这个 channel 通过特定算法注册到 group 中的某个 EventLoop 的 selector 上，其实就是把之前的的 register 重新调了一遍
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
