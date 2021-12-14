@@ -33,7 +33,7 @@ public class CloseFutureClient {
 					@Override
 					protected void initChannel(NioSocketChannel ch) throws Exception {
 						ch.pipeline().addLast(new LoggingHandler(LogLevel.DEBUG));
-						ch.pipeline().addLast(new StringEncoder());
+						ch.pipeline().addLast(new   StringEncoder());
 					}
 				})
 				.connect(new InetSocketAddress("localhost", 8080));

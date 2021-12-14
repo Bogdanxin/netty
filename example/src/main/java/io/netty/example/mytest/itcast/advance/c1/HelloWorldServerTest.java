@@ -28,7 +28,8 @@ public class HelloWorldServerTest {
 			ServerBootstrap bootstrap = new ServerBootstrap();
 			bootstrap.group(boss, worker)
 					.channel(NioServerSocketChannel.class)
-					.option(ChannelOption.SO_RCVBUF, 5)
+//					.option(ChannelOption.SO_RCVBUF, 5)
+					.childOption(ChannelOption.RCVBUF_ALLOCATOR, new AdaptiveRecvByteBufAllocator(16,16,16))
 					.childHandler(new ChannelInitializer<SocketChannel>() {
 
 						@Override

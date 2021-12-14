@@ -1,19 +1,14 @@
-package io.netty.example.mytest.itcast.c5;
+package io.netty.example.mytest.itcast.netty.c5;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.example.mytest.itcast.c5.handler.FirstClientHandler;
-import io.netty.example.mytest.itcast.c5.handler.NettyClientHandler;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
-import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.example.mytest.itcast.netty.c5.handler.FirstClientHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 /**

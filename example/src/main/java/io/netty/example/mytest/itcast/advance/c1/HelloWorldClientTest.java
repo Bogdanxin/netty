@@ -23,6 +23,14 @@ import java.net.InetSocketAddress;
 public class HelloWorldClientTest {
 
 	public static void main(String[] args) {
+		for (int i = 0; i < 10; i++) {
+			send();
+		}
+
+		System.out.println("finish");
+	}
+
+	private static void send() {
 		NioEventLoopGroup worker = new NioEventLoopGroup();
 		try {
 			Bootstrap bootstrap = new Bootstrap();
@@ -35,11 +43,11 @@ public class HelloWorldClientTest {
 								// 会在连接 channel 建立后，触发 active 事件。调用 channelActive 方法
 								@Override
 								public void channelActive(ChannelHandlerContext ctx) throws Exception {
-									for (int i = 0; i < 10; i++) {
-										ByteBuf buf = ctx.alloc().buffer(16);
-										buf.writeBytes(new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});
-										ctx.writeAndFlush(buf);
-									}
+
+									ByteBuf buf = ctx.alloc().buffer(16);
+									buf.writeBytes(new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20});
+									ctx.writeAndFlush(buf);
+									ctx.channel().close();
 								}
 							});
 						}

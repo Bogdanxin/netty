@@ -1,4 +1,4 @@
-package io.netty.example.mytest.itcast.c5.handler;
+package io.netty.example.mytest.itcast.netty.c5.handler;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
