@@ -33,7 +33,9 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
 
@@ -94,6 +96,7 @@ public final class NativeLibraryLoader {
         for (String name : names) {
             try {
                 load(name, loader);
+                logger.debug("Loaded library with name '{}'", name);
                 return;
             } catch (Throwable t) {
                 suppressed.add(t);
@@ -145,22 +148,13 @@ public final class NativeLibraryLoader {
         InputStream in = null;
         OutputStream out = null;
         File tmpFile = null;
-        URL url;
-        if (loader == null) {
-            url = ClassLoader.getSystemResource(path);
-        } else {
-            url = loader.getResource(path);
-        }
+        URL url = getResource(path, loader);
         try {
             if (url == null) {
                 if (PlatformDependent.isOsx()) {
                     String fileName = path.endsWith(".jnilib") ? NATIVE_RESOURCE_HOME + "lib" + name + ".dynlib" :
                             NATIVE_RESOURCE_HOME + "lib" + name + ".jnilib";
-                    if (loader == null) {
-                        url = ClassLoader.getSystemResource(fileName);
-                    } else {
-                        url = loader.getResource(fileName);
-                    }
+                    url = getResource(fileName, loader);
                     if (url == null) {
                         FileNotFoundException fnf = new FileNotFoundException(fileName);
                         ThrowableUtil.addSuppressedAndClear(fnf, suppressed);
@@ -181,22 +175,24 @@ public final class NativeLibraryLoader {
             in = url.openStream();
             out = new FileOutputStream(tmpFile);
 
-            if (shouldShadedLibraryIdBePatched(packagePrefix)) {
-                patchShadedLibraryId(in, out, originalName, name);
-            } else {
-                byte[] buffer = new byte[8192];
-                int length;
-                while ((length = in.read(buffer)) > 0) {
-                    out.write(buffer, 0, length);
-                }
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = in.read(buffer)) > 0) {
+                out.write(buffer, 0, length);
             }
-
             out.flush();
+
+            if (shouldShadedLibraryIdBePatched(packagePrefix)) {
+                // Let's try to patch the id and re-sign it. This is a best-effort and might fail if a
+                // SecurityManager is setup or the right executables are not installed :/
+                tryPatchShadedLibraryIdAndSign(tmpFile, originalName);
+            }
 
             // Close the output stream before loading the unpacked library,
             // because otherwise Windows will refuse to load it when it's in use by other process.
             closeQuietly(out);
             out = null;
+
             loadLibrary(loader, tmpFile.getPath(), true);
         } catch (UnsatisfiedLinkError e) {
             try {
@@ -234,91 +230,70 @@ public final class NativeLibraryLoader {
         }
     }
 
-    // Package-private for testing.
-    static boolean patchShadedLibraryId(InputStream in, OutputStream out, String originalName, String name)
-            throws IOException {
-        byte[] buffer = new byte[8192];
-        int length;
-        // We read the whole native lib into memory to make it easier to monkey-patch the id.
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(in.available());
-
-        while ((length = in.read(buffer)) > 0) {
-            byteArrayOutputStream.write(buffer, 0, length);
-        }
-        byteArrayOutputStream.flush();
-        byte[] bytes = byteArrayOutputStream.toByteArray();
-        byteArrayOutputStream.close();
-
-        final boolean patched;
-        // Try to patch the library id.
-        if (!patchShadedLibraryId(bytes, originalName, name)) {
-            // We did not find the Id, check if we used a originalName that has the os and arch as suffix.
-            // If this is the case we should also try to patch with the os and arch suffix removed.
-            String os = PlatformDependent.normalizedOs();
-            String arch = PlatformDependent.normalizedArch();
-            String osArch = "_" + os + "_" + arch;
-            if (originalName.endsWith(osArch)) {
-                patched = patchShadedLibraryId(bytes,
-                        originalName.substring(0, originalName.length() - osArch.length()), name);
+    private static URL getResource(String path, ClassLoader loader) {
+        final Enumeration<URL> urls;
+        try {
+            if (loader == null) {
+                urls = ClassLoader.getSystemResources(path);
             } else {
-                patched = false;
+                urls = loader.getResources(path);
             }
-        } else {
-            patched = true;
+        } catch (IOException iox) {
+            throw new RuntimeException("An error occurred while getting the resources for " + path, iox);
         }
-        out.write(bytes, 0, bytes.length);
-        return patched;
+
+        List<URL> urlsList = Collections.list(urls);
+        int size = urlsList.size();
+        switch (size) {
+            case 0:
+                return null;
+            case 1:
+                return urlsList.get(0);
+            default:
+                throw new IllegalStateException("Multiple resources found for '" + path + "': " + urlsList);
+        }
+    }
+
+    static void tryPatchShadedLibraryIdAndSign(File libraryFile, String originalName) {
+        String newId = new String(generateUniqueId(originalName.length()), CharsetUtil.UTF_8);
+        if (!tryExec("install_name_tool -id " + newId + " " + libraryFile.getAbsolutePath())) {
+            return;
+        }
+
+        tryExec("codesign -s - " + libraryFile.getAbsolutePath());
+    }
+
+    private static boolean tryExec(String cmd) {
+        try {
+            int exitValue = Runtime.getRuntime().exec(cmd).waitFor();
+            if (exitValue != 0) {
+                logger.debug("Execution of '{}' failed: {}", cmd, exitValue);
+                return false;
+            }
+            logger.debug("Execution of '{}' succeed: {}", cmd, exitValue);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (IOException e) {
+            logger.info("Execution of '{}' failed.", cmd, e);
+        } catch (SecurityException e) {
+            logger.error("Execution of '{}' failed.", cmd, e);
+        }
+        return false;
     }
 
     private static boolean shouldShadedLibraryIdBePatched(String packagePrefix) {
         return TRY_TO_PATCH_SHADED_ID && PlatformDependent.isOsx() && !packagePrefix.isEmpty();
     }
 
-    /**
-     * Try to patch shaded library to ensure it uses a unique ID.
-     */
-    private static boolean patchShadedLibraryId(byte[] bytes, String originalName, String name) {
-        // Our native libs always have the name as part of their id so we can search for it and replace it
-        // to make the ID unique if shading is used.
-        byte[] nameBytes = originalName.getBytes(CharsetUtil.UTF_8);
-        int idIdx = -1;
-
-        // Be aware this is a really raw way of patching a dylib but it does all we need without implementing
-        // a full mach-o parser and writer. Basically we just replace the the original bytes with some
-        // random bytes as part of the ID regeneration. The important thing here is that we need to use the same
-        // length to not corrupt the mach-o header.
-        outerLoop: for (int i = 0; i < bytes.length && bytes.length - i >= nameBytes.length; i++) {
-            int idx = i;
-            for (int j = 0; j < nameBytes.length;) {
-                if (bytes[idx++] != nameBytes[j++]) {
-                    // Did not match the name, increase the index and try again.
-                    break;
-                } else if (j == nameBytes.length) {
-                    // We found the index within the id.
-                    idIdx = i;
-                    break outerLoop;
-                }
-            }
+    private static byte[] generateUniqueId(int length) {
+        byte[] idBytes = new byte[length];
+        for (int i = 0; i < idBytes.length; i++) {
+            // We should only use bytes as replacement that are in our UNIQUE_ID_BYTES array.
+            idBytes[i] = UNIQUE_ID_BYTES[PlatformDependent.threadLocalRandom()
+                    .nextInt(UNIQUE_ID_BYTES.length)];
         }
-
-        if (idIdx == -1) {
-            logger.debug("Was not able to find the ID of the shaded native library {}, can't adjust it.", name);
-            return false;
-        } else {
-            // We found our ID... now monkey-patch it!
-            for (int i = 0; i < nameBytes.length; i++) {
-                // We should only use bytes as replacement that are in our UNIQUE_ID_BYTES array.
-                bytes[idIdx + i] = UNIQUE_ID_BYTES[PlatformDependent.threadLocalRandom()
-                                                                    .nextInt(UNIQUE_ID_BYTES.length)];
-            }
-
-            if (logger.isDebugEnabled()) {
-                logger.debug(
-                        "Found the ID of the shaded native library {}. Replacing ID part {} with {}",
-                        name, originalName, new String(bytes, idIdx, nameBytes.length, CharsetUtil.UTF_8));
-            }
-            return true;
-        }
+        return idBytes;
     }
 
     /**
@@ -331,7 +306,7 @@ public final class NativeLibraryLoader {
         Throwable suppressed = null;
         try {
             try {
-                // Make sure the helper is belong to the target ClassLoader.
+                // Make sure the helper belongs to the target ClassLoader.
                 final Class<?> newHelper = tryToLoadClass(loader, NativeLibraryUtil.class);
                 loadLibraryByHelper(newHelper, name, absolute);
                 logger.debug("Successfully loaded the library {}", name);
